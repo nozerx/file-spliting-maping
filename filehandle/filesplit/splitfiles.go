@@ -2,6 +2,7 @@ package filesplit
 
 import (
 	"file-spliting-maping/filehandle"
+	"file-spliting-maping/filehandle/filemap"
 	"fmt"
 	"os"
 )
@@ -15,6 +16,8 @@ func SplitFile(fileInfo filehandle.FileInfo, file *os.File) {
 		leftByteSize = fileInfo.FileSize % filehandle.BufferSize
 	}
 	lastPieceBuffer := make([]byte, leftByteSize)
+	fileInfo.FilePieces = iterationCount
+	fileMapList := filemap.InitMapList()
 	for i := 0; i < iterationCount; i++ {
 		if i == (iterationCount - 1) {
 			file.Read(lastPieceBuffer)
@@ -25,6 +28,8 @@ func SplitFile(fileInfo filehandle.FileInfo, file *os.File) {
 			} else {
 				tempFile.Write(lastPieceBuffer)
 				tempFile.Close()
+				pieceInfo := filehandle.ComposePieceInfo(tempFileName, leftByteSize)
+				fileMapList = fileMapList.AppendFilePieceInfo(pieceInfo)
 				fmt.Println("Handled file ", tempFileName)
 			}
 		} else {
@@ -36,8 +41,11 @@ func SplitFile(fileInfo filehandle.FileInfo, file *os.File) {
 			} else {
 				tempFile.Write(buffer)
 				tempFile.Close()
+				pieceInfo := filehandle.ComposePieceInfo(tempFileName, filehandle.BufferSize)
+				fileMapList = fileMapList.AppendFilePieceInfo(pieceInfo)
 				fmt.Println("Handled file ", tempFileName)
 			}
 		}
 	}
+	fileMapList.Save(fileInfo.FileName)
 }
